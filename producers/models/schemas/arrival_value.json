@@ -1,0 +1,14 @@
+{
+  "type": "record",
+  "name": "arrival.value",
+  "namespace": "com.udacity",
+  "fields": [
+    {"name": "station_id", "type": "int"},
+    {"name": "train_id", "type": "string"},
+    {"name": "direction", "type": "string"},
+    {"name": "line", "type": "int"},
+    {"name": "train_status", "type": "int"},
+    {"name": "prev_station_id", "type": ["null", "int"]},
+    {"name": "prev_direction", "type": ["null", "string"]}
+  ]
+}
