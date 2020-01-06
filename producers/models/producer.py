@@ -90,7 +90,7 @@ class Producer:
         else:
             logger.info(f"{self.topic_name} already exists")
             
-        logger.info("topic creation kafka integration complete - DONE")
+        #logger.info("topic creation kafka integration complete - DONE")
 
     def time_millis(self):
         return int(round(time.time() * 1000))
