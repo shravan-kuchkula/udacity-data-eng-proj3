@@ -36,7 +36,7 @@ class Turnstile(Producer):
         #
         #
         super().__init__(
-            f"{station_name}", # TODO: Come up with a better topic name
+            topic_name="org.chicago.cta.turnstile", # TODO: Come up with a better topic name
             key_schema=Turnstile.key_schema,
             value_schema=Turnstile.value_schema, 
             num_partitions=1,
@@ -58,11 +58,11 @@ class Turnstile(Producer):
         for index in range(num_entries):
             self.producer.produce(
                 topic=self.topic_name,
-                key={"timestamp": self.time_millis()},
+                key={"timestamp": self.time_millis() + index},
                 value_schema=self.value_schema,
                 value={
                     "station_id":self.station.station_id,
                     "station_name":self.station.name,
-                    "line":self.station.color
+                    "line":self.station.color.name
                 }
             )
