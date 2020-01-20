@@ -1,12 +1,15 @@
 """Defines trends calculations for stations"""
 import logging
-
+import json
 import faust
+from dataclasses import asdict, dataclass
+
 
 logger = logging.getLogger(__name__)
 
 
 # Faust will ingest records from Kafka in this format
+@dataclass
 class Station(faust.Record):
     stop_id: int
     direction_id: str
@@ -30,23 +33,9 @@ class TransformedStation(faust.Record):
 
 # TODO: Define a Faust Stream that ingests data from the Kafka Connect stations topic and
 #   places it into a new topic with only the necessary information.
-app = faust.App("stations-streams1", broker="kafka://localhost:9092", store="memory://")
+app = faust.App("stations-stream-test2", broker="kafka://localhost:9092", store="memory://")
 # TODO: Define the input Kafka Topic. Hint: What topic did Kafka Connect output to?
 topic = app.topic("org.chicago.cta.stations", value_type=Station)
-# TODO: Define the output Kafka Topic
-out_topic = app.topic("org.chicago.cta.stations.trim1", 
-                      partitions=1,
-                     key_type=str,
-                     value_type=TransformedStation)
-
-# TODO: Define a Faust Table
-table = app.Table(
-     "changelog_table",
-     default=int,
-     partitions=1,
-     changelog_topic=out_topic,
-)
-
 
 #
 #
@@ -58,26 +47,7 @@ table = app.Table(
 @app.agent(topic)
 async def transform_stations(stations):
     async for station in stations:
-
-        # determine linecolor
-        if station.red:
-            linecolor = 'red'
-        elif station.blue:
-            linecolor = 'blue'
-        elif station.green:
-            linecolor = 'green'
-        else:
-            linecolor = 'unknown'
-        
-        transformed_station = TransformedStation(
-            station_id = station.station_id,
-            station_name = station.station_name,
-            order = station.order,
-            line = linecolor
-        )
-        
-        await out_topic.send(key=station.station_name, value=transformed_station)
-    
+        logger.info(json.dumps(asdict(station), indent=2))
 
 if __name__ == "__main__":
     app.main()
