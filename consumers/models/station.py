@@ -2,9 +2,7 @@
 import json
 import logging
 
-
 logger = logging.getLogger(__name__)
-
 
 class Station:
     """Defines the Station Model"""

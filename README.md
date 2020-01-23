@@ -6,6 +6,7 @@ Stream data into Kafka and process the data using KSQL and Faust
 **Project architecture**: Since our goal is to get data from disparate systems to the dashboard, we can make use of Kafka and its ecosystem as an intermediary. Shown below is the high-level architecture of the flow of data into and out of Kafka using various components of the Kafka ecosystem, such as: `Kafka Connect` to ingest data from the database, `Kafka REST Proxy` to interface with a REST endpoint, `KSQL` to aggregate turnstile data at each station, `Faust` to transform the stream/table before it is consumed by the web server application running the dashboard.
 ![project-architecture](images/project-architecture.png)
 
+**Project implementation**:
 ## Producers
 Mainly, we are going to be creating 3 Producers:
 
@@ -16,3 +17,58 @@ Mainly, we are going to be creating 3 Producers:
 ## Consumers
 * On the other side of this, we are going to a `Kafka Consumer` to consume data from these Kafka topics.
 * We are also going to be using `Faust` and `KSQL` to **extract** data and **transform** it.
+
+**Project structure**:
+```bash
+.
+├── README.md
+├── consumers
+│   ├── __init__.py
+│   ├── consumer.py
+│   ├── faust_stream.py
+│   ├── ksql.py
+│   ├── logging.ini
+│   ├── models
+│   │   ├── __init__.py
+│   │   ├── line.py
+│   │   ├── lines.py
+│   │   ├── station.py
+│   │   └── weather.py
+│   ├── requirements.txt
+│   ├── server.py
+│   ├── templates
+│   │   └── status.html
+│   ├── test_faust_stream.py
+│   └── topic_check.py
+├── docker-compose.yaml
+├── images
+│   └── project-architecture.png
+├── load_stations.sql
+└── producers
+    ├── __init__.py
+    ├── connector.py
+    ├── data
+    │   ├── README.md
+    │   ├── cta_stations.csv
+    │   ├── ridership_curve.csv
+    │   └── ridership_seed.csv
+    ├── logging.ini
+    ├── models
+    │   ├── __init__.py
+    │   ├── line.py
+    │   ├── producer.py
+    │   ├── schemas
+    │   │   ├── arrival_key.json
+    │   │   ├── arrival_value.json
+    │   │   ├── turnstile_key.json
+    │   │   ├── turnstile_value.json
+    │   │   ├── weather_key.json
+    │   │   └── weather_value.json
+    │   ├── station.py
+    │   ├── train.py
+    │   ├── turnstile.py
+    │   ├── turnstile_hardware.py
+    │   └── weather.py
+    ├── requirements.txt
+    └── simulation.py
+```

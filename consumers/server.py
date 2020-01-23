@@ -7,15 +7,12 @@ import tornado.ioloop
 import tornado.template
 import tornado.web
 
-
 # Import logging before models to ensure configuration is picked up
 logging.config.fileConfig(f"{Path(__file__).parents[0]}/logging.ini")
-
 
 from consumer import KafkaConsumer
 from models import Lines, Weather
 import topic_check
-
 
 logger = logging.getLogger(__name__)
 WEB_SERVER_PORT = 8889
@@ -47,7 +44,6 @@ def run_server():
         )
         exit(1)
 
-    #if topic_check.topic_pattern_match("stations.table") is False:
     if topic_check.topic_pattern_match("stations.transformed") is False:
         logger.fatal(
             "Ensure that Faust Streaming is running successfully before running the web server!"
@@ -101,7 +97,6 @@ def run_server():
         tornado.ioloop.IOLoop.current().stop()
         for consumer in consumers:
             consumer.close()
-
 
 if __name__ == "__main__":
     run_server()

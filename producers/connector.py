@@ -1,12 +1,9 @@
 """Configures a Kafka Connector for Postgres Station data"""
 import json
 import logging
-
 import requests
 
-
 logger = logging.getLogger(__name__)
-
 
 KAFKA_CONNECT_URL = "http://localhost:8083/connectors"
 CONNECTOR_NAME = "stations"
@@ -20,18 +17,9 @@ def configure_connector():
         logging.debug("connector already created skipping recreation")
         return
 
-    # TODO: Complete the Kafka Connect Config below.
-    # Directions: Use the JDBC Source Connector to connect to Postgres. Load the `stations` table
+    # Kafka Connect Config 
+    # Use the JDBC Source Connector to connect to Postgres. Load the `stations` table
     # using incrementing mode, with `stop_id` as the incrementing column name.
-    # Make sure to think about what an appropriate topic prefix would be, and how frequently Kafka
-    # Connect should run this connector (hint: not very often!)
-        #return
-
-    # TODO: Complete the Kafka Connect Config below.
-    # Directions: Use the JDBC Source Connector to connect to Postgres. Load the `stations` table
-    # using incrementing mode, with `stop_id` as the incrementing column name.
-    # Make sure to think about what an appropriate topic prefix would be, and how frequently Kafka
-    # Connect should run this connector (hint: not very often!)
     logger.info("Creating a new connector...")
     resp = requests.post(
         KAFKA_CONNECT_URL,
