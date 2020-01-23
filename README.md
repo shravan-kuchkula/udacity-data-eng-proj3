@@ -6,17 +6,19 @@ Stream data into Kafka and process the data using KSQL and Faust
 **Project architecture**: Since our goal is to get data from disparate systems to the dashboard, we can make use of Kafka and its ecosystem as an intermediary. Shown below is the high-level architecture of the flow of data into and out of Kafka using various components of the Kafka ecosystem, such as: `Kafka Connect` to ingest data from the database, `Kafka REST Proxy` to interface with a REST endpoint, `KSQL` to aggregate turnstile data at each station, `Faust` to transform the stream/table before it is consumed by the web server application running the dashboard.
 ![project-architecture](images/project-architecture.png)
 
-**Project implementation**:
-## Producers
-Mainly, we are going to be creating 3 Producers:
+**Project implementation**: The entire project is implemented in Python using `confluent_kafka`, `faust`, `KSQL` and other packages. The best way to understand the implementation is to focus on the producers first and then consumers. A producer is one that will load data into our Kafka cluster. A consumer can be a stream processing application
 
-* The first thing we are going to do in this project is we're going to create a `Kafka Producer` which produces **train arrival** and **turnstile** information into our Kafka cluster. Arrivals will simply indicate that a train has arrived at a particular station and a turnstile event will simply indicate that a passenger has entered the station.
-* Next, we are going to create a `REST Proxy Producer`. So, this will be a python script, that simply runs and periodically emits weather data via REST Proxy and puts it into Kafka.
-* And, finally, we are going to build a `Kafka Connect` JDBC source connector, which is going to connect to Postgres and extract data from our stations table and place it into Kafka.
+***Producers:*** Mainly, there are 3 types of producers that emit data into the Kafka Cluster.
 
-## Consumers
-* On the other side of this, we are going to a `Kafka Consumer` to consume data from these Kafka topics.
-* We are also going to be using `Faust` and `KSQL` to **extract** data and **transform** it.
+* **Native Kafka Producers**: The first type of producers makes use of `confluent_kafka` library to emit messages into Kafka Topics. The `KafkaProducer` base class provides core-functionality of a producer that is needed by other producers. The two producers: `Station` and `Turnstile` produce **train arrival** and **turnstile** information into our Kafka cluster. Arrivals will simply indicate that a train has arrived at a particular station and a turnstile event will simply indicate that a passenger has entered the station.
+* **REST Proxy Producer**: The second type of producer is a `REST Proxy Producer`. So, this will be a python script, that simply runs and periodically emits weather data via REST Proxy and puts it into Kafka.
+* **Kafka Connect Producer**: The third type of producer is simply a `Kafka Connect` JDBC source connector, which is going to connect to Postgres and extract data from a `stations table` and places it into Kafka.
+
+***Consumers:*** On the other side of this, we are going to use 3 types of consumers that extract data from the Kafka Topics, transform them in some form and either load them back into Kafka or get consumed by the Web application running inside the web server.
+
+* **Native Kafka Consumers**: 
+* **Faust to extract and transform the Stations data and load it into a stream in Kafka**:
+* **KSQL to extract and aggregate the Turnstile data**:
 
 **Project structure**:
 ```bash
