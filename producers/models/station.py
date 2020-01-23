@@ -43,6 +43,7 @@ class Station(Producer):
 
     def run(self, train, direction, prev_station_id, prev_direction):
         """Simulates train arrivals at this station"""
+        logger.info("Emitting message to arrivals topic")
         # produce an arrival message to Kafka
         self.producer.produce(
             topic=self.topic_name,
