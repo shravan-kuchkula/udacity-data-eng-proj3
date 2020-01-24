@@ -105,24 +105,13 @@ The script that orchestrates these consumers and feeds the data into the dashboa
 
 To run the simulation, you must first start up the Kafka ecosystem on their machine utilizing Docker Compose.
 
-```%> docker-compose up```
+`docker-compose up`
 
 Docker compose will take a 3-5 minutes to start, depending on your hardware. Please be patient and wait for the docker-compose logs to slow down or stop before beginning the simulation.
 
 Once docker-compose is ready, the following services will be available:
 
-| Service | Host URL | Docker URL | Username | Password |
-| --- | --- | --- | --- | --- |
-| Public Transit Status | [http://localhost:8888](http://localhost:8888) | n/a | ||
-| Landoop Kafka Connect UI | [http://localhost:8084](http://localhost:8084) | http://connect-ui:8084 |
-| Landoop Kafka Topics UI | [http://localhost:8085](http://localhost:8085) | http://topics-ui:8085 |
-| Landoop Schema Registry UI | [http://localhost:8086](http://localhost:8086) | http://schema-registry-ui:8086 |
-| Kafka | PLAINTEXT://localhost:9092,PLAINTEXT://localhost:9093,PLAINTEXT://localhost:9094 | PLAINTEXT://kafka0:9092,PLAINTEXT://kafka1:9093,PLAINTEXT://kafka2:9094 |
-| REST Proxy | [http://localhost:8082](http://localhost:8082/) | http://rest-proxy:8082/ |
-| Schema Registry | [http://localhost:8081](http://localhost:8081/ ) | http://schema-registry:8081/ |
-| Kafka Connect | [http://localhost:8083](http://localhost:8083) | http://kafka-connect:8083 |
-| KSQL | [http://localhost:8088](http://localhost:8088) | http://ksql:8088 |
-| PostgreSQL | `jdbc:postgresql://localhost:5432/cta` | `jdbc:postgresql://postgres:5432/cta` | `cta_admin` | `chicago` |
+![project-urls](images/project-urls.png)
 
 Note that to access these services from your own machine, you will always use the `Host URL` column.
 
@@ -131,7 +120,7 @@ When configuring services that run within Docker Compose, like **Kafka Connect y
 ### Running the Simulation
 There are 4 scripts that we need to run in order to simulate the flow of data from the sources through our pipeline and into the dashboard.
 
-#### To run the `producer`:
+#### Step 1: To run the `producer`:
 1. `cd producers`
 2. `virtualenv venv`
 3. `. venv/bin/activate`
@@ -142,21 +131,21 @@ Once the simulation is running, you may hit `Ctrl+C` at any time to exit.
 
 This connects to the Kafka Cluster and creates the necessary topics and then emits train arrival and turnstile events into Kafka. In addition to emitting these events, the simulation periodically retrieves the weather information and loads that into its corresponding topic. Finally, it also triggers the Kafka Connect component to retrieve data from postgres and stores it into the appropriate topic. **NOTE**: Leave this script running, open a new terminal and run the next steps.
 
-#### To run the Faust Stream Processing Application:
+#### Step 2: To run the Faust Stream Processing Application:
 1. `cd consumers`
 2. `virtualenv venv`
 3. `. venv/bin/activate`
 4. `pip install -r requirements.txt`
 5. `faust -A faust_stream worker -l info`
 
-#### To run the KSQL Creation Script:
+#### Step 3: To run the KSQL Creation Script:
 1. `cd consumers`
 2. `virtualenv venv`
 3. `. venv/bin/activate`
 4. `pip install -r requirements.txt`
 5. `python ksql.py`
 
-#### To run the `consumer`:
+#### Step 4: To run the `consumer`:
 1. `cd consumers`
 2. `virtualenv venv`
 3. `. venv/bin/activate`
@@ -165,9 +154,86 @@ This connects to the Kafka Cluster and creates the necessary topics and then emi
 
 Once the server is running, you may hit `Ctrl+C` at any time to exit.
 
-### Validate Results
+### Output and Validating Results
 
-***Validate Schema Registry***:
+#### Step 1: Output of running the simulation:
+
+![simulation](images/simulation.png)
+
+***Validate Topics are created***:
+```bash
+root@89d03eaf3839:/home/workspace/producers# kafka-topics --list --zookeeper localhost:2181
+__confluent.support.metrics
+__consumer_offsets
+_confluent-ksql-default__command_topic
+_confluent-metrics
+_confluent-monitoring
+_schemas
+connect-configs
+connect-offsets
+connect-status
+org.chicago.cta.station.arrivals
+org.chicago.cta.stations
+org.chicago.cta.turnstiles
+weather
+root@89d03eaf3839:/home/workspace/producers#
+```
+
+#### Step 2: Output of running faust:
+
+![faust](images/faust.png)
+
+***Validate faust ETL***: `org.chicago.cta.stations.transformed` got created.
+```bash
+root@89d03eaf3839:/home/workspace/consumers# kafka-topics --list --zookeeper localhost:2181
+__confluent.support.metrics
+__consumer_offsets
+_confluent-ksql-default__command_topic
+_confluent-metrics
+_confluent-monitoring
+_schemas
+connect-configs
+connect-offsets
+connect-status
+org.chicago.cta.station.arrivals
+org.chicago.cta.stations
+org.chicago.cta.stations.transformed
+org.chicago.cta.turnstiles
+stations-streams-__assignor-__leader
+weather
+root@89d03eaf3839:/home/workspace/consumers#
+```
+Use `kafka-console-consumer` to validate the structure of data inside `org.chicago.cta.stations.transformed` is in the `TransformedStation` record format.
+
+```bash
+#kafka-console-consumer --bootstrap-server localhost:9092 --topic org.chicago.cta.stations.transformed --from-beginning
+{"station_id": 40010, "station_name": "Austin", "order": 29, "line": "blue", "__faust": {"ns": "faust_stream.TransformedStation"}}
+{"station_id": 40020, "station_name": "Harlem/Lake", "order": 0, "line": "green", "__faust": {"ns": "faust_stream.TransformedStation"}}
+{"station_id": 40030, "station_name": "Pulaski", "order": 7, "line": "green", "__faust": {"ns": "faust_stream.TransformedStation"}}
+{"station_id": 40480, "station_name": "Cicero", "order": 6, "line": "green", "__faust": {"ns": "faust_stream.TransformedStation"}}
+{"station_id": 40060, "station_name": "Belmont", "order": 8, "line": "blue", "__faust": {"ns": "faust_stream.TransformedStation"}}
+{"station_id": 40070, "station_name": "Jackson", "order": 19, "line": "blue", "__faust": {"ns": "faust_stream.TransformedStation"}}
+{"station_id": 40080, "station_name": "Sheridan", "order": 11, "line": "red", "__faust": {"ns": "faust_stream.TransformedStation"}}
+{"station_id": 40090, "station_name": "Damen", "order": 5, "line": "unknown", "__faust": {"ns": "faust_stream.TransformedStation"}}
+```
+
+#### Step 3: Output of running KSQL:
+![ksql](images/ksql.png)
+
+***Validate KSQL tables and queries***:
+The following query is running in the background, which is responsible for aggregating the turnstile data per station:
+![ksql-query](images/ksql-query.png)
+
+Shown below are the contents of `TURNSTILES` and `TURNSTILES_SUMMARY` tables created by ksql.py
+![ksql-query-output](images/ksql-query-output.png)
+
+#### Step 4: Output of running server.py:
+![consumer](images/consumer.png)
+![consumer-shutdown](images/consumer-shutdown.png)
+
+#### Additional validations
+
+***Validate Schema Registry***: The Schema Registry stores the AVRO schemas, we can validate this by querying the Schema Registry REST API.
 
 ```bash
 # curl -X GET http://localhost:8081/subjects/ | python -m json.tool
@@ -184,7 +250,8 @@ Once the server is running, you may hit `Ctrl+C` at any time to exit.
 ]
 ```
 
-***Validate REST Proxy results***: Recall that we use REST Proxy to
+***Validate REST Proxy results***: The weather data is being ingested into Kafka using Kafka REST Proxy periodically. This can be validated by creating a temporary stream in KSQL and querying the stream. Note, we can't use `kafka-console-consumer` as the topic format is `AVRO`.
+
 ```bash
 ksql> CREATE STREAM weather_table(
 >  temperature DOUBLE,
