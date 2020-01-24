@@ -1,6 +1,4 @@
 # Data-Streaming-Using-Kafka
-Stream data into Kafka and process the data using KSQL and Faust
-
 **Project Description**: The Chicago Transit Authority (CTA) is interested in developing a data dashboard that displays the status of trains for its commuters. As their data engineer, I was tasked to build a **real-time stream processing data pipeline** that will allow the *train arrival* and *passenger turnstile* events emitted by devices installed by CTA at each train station to **flow** through the data pipeline into a `Transit Status Dashboard`. Shown below is the dashboard which shows the train arrivals, aggregated turnstile data and weather information.
 
 ![dashbaord](images/dashboard.png)  
@@ -14,10 +12,13 @@ Stream data into Kafka and process the data using KSQL and Faust
   * Each turnstile event has the following fields: `{"station_id", "station_name", "line"}`
 - The Weather data is periodically loaded by extracting the data from the REST endpoint. It has the following fields: `{"temperature", "status"}`
 
-**Project architecture**: Since our goal is to get data from disparate systems to the dashboard, we can make use of Kafka and its ecosystem as an intermediary. Shown below is the high-level architecture of the flow of data into and out of Kafka using various components of the Kafka ecosystem, such as: `Kafka Connect` to ingest data from the database, `Kafka REST Proxy` to interface with a REST endpoint, `KSQL` to aggregate turnstile data at each station, `Faust` to transform the stream/table before it is consumed by the web server application running the dashboard.
+## Project architecture:
+ Since our goal is to get data from disparate systems to the dashboard, we can make use of Kafka and its ecosystem as an intermediary. Shown below is the high-level architecture of the flow of data into and out of Kafka using various components of the Kafka ecosystem, such as: `Kafka Connect` to ingest data from the database, `Kafka REST Proxy` to interface with a REST endpoint, `KSQL` to aggregate turnstile data at each station, `Faust` to transform the stream/table before it is consumed by the web server application running the dashboard.
+
 ![project-architecture](images/project-architecture.png)
 
-**Project implementation**: The entire project is implemented in Python using `confluent_kafka`, `faust`, `KSQL` and other packages. The best way to understand the implementation is to focus on the producers first, then the role of stream processors in doing ETL and finally the consumers - which will load the data into the dashboard.
+## Project implementation:
+The entire project is implemented in Python using `confluent_kafka`, `faust`, `KSQL` and other packages. The best way to understand the implementation is to focus on the producers first, then the role of stream processors in doing ETL and finally the consumers - which will load the data into the dashboard.
 
 ***Producers:*** A producer is one that will load data into our Kafka cluster. In our case, there are 3 types of producers that emit data into the Kafka topics - the place where we store data in the Kafka Cluster.
 
@@ -45,7 +46,7 @@ Stream data into Kafka and process the data using KSQL and Faust
 
 The script that orchestrates these consumers and feeds the data into the dashboard is `server.py`
 
-**Project structure**:
+### Project structure:
 ```bash
 .
 ├── README.md
@@ -100,7 +101,7 @@ The script that orchestrates these consumers and feeds the data into the dashboa
     └── simulation.py
 ```
 
-## How to run this project?
+### How to run this project?
 
 To run the simulation, you must first start up the Kafka ecosystem on their machine utilizing Docker Compose.
 
@@ -130,9 +131,7 @@ When configuring services that run within Docker Compose, like **Kafka Connect y
 ### Running the Simulation
 There are 4 scripts that we need to run in order to simulate the flow of data from the sources through our pipeline and into the dashboard.
 
-
 #### To run the `producer`:
-
 1. `cd producers`
 2. `virtualenv venv`
 3. `. venv/bin/activate`
@@ -150,7 +149,6 @@ This connects to the Kafka Cluster and creates the necessary topics and then emi
 4. `pip install -r requirements.txt`
 5. `faust -A faust_stream worker -l info`
 
-
 #### To run the KSQL Creation Script:
 1. `cd consumers`
 2. `virtualenv venv`
@@ -159,8 +157,6 @@ This connects to the Kafka Cluster and creates the necessary topics and then emi
 5. `python ksql.py`
 
 #### To run the `consumer`:
-
-** NOTE **: Do not run the consumer until you have reached Step 6!
 1. `cd consumers`
 2. `virtualenv venv`
 3. `. venv/bin/activate`
@@ -169,7 +165,7 @@ This connects to the Kafka Cluster and creates the necessary topics and then emi
 
 Once the server is running, you may hit `Ctrl+C` at any time to exit.
 
-**Validate Results**:
+### Validate Results
 
 ***Validate Schema Registry***:
 
