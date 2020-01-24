@@ -29,15 +29,15 @@ Stream data into Kafka and process the data using KSQL and Faust
 * **Kafka Connect Producer**: The third type of producer is simply a `Kafka Connect` JDBC source connector, which is going to connect to Postgres and extract data from a `stations table` and places it into Kafka topic:
   * TOPIC: `org.chicago.cta.stations`: contains `Station` records
 
-***Stream Processors***: As depicted in the architecture diagram, we made use of two stream processors to perform some ETL tasks:
+***Stream Processors***: As depicted in the architecture diagram, I made use of two stream processors to perform some ETL tasks:
 - `Faust` stream processing framework is used to *transform* input `Station` records into `TransformedStation` records that are stored in a new topic:
-  * TOPIC: `org.chicago.cta.stations.transformed`: Contains `TransformedStation` records of the format `{"station_id", "station_name", "order", "line"}`. If you observe the original `Station` records (shown in the screenshot in the data description section), you will notice that `Station` records do not have a `line` field. We construct this line from the fields: `red`, `blue`, `green`- this is one of the transformations that is performed by `faust_stream.py`. The second transformation is that we discard some of the columns we don't need.
+  * TOPIC: `org.chicago.cta.stations.transformed`: Contains `TransformedStation` records of the format `{"station_id", "station_name", "order", "line"}`. If you observe the original `Station` records (shown in the screenshot in the data description section), you will notice that `Station` records does not have a `line` field. We construct this line from the fields: `red`, `blue`, `green`- this is one of the transformations that is performed by `faust_stream.py`. The second transformation is that we discard some of the columns we don't need.
 
 - `KSQL` is used to create two tables:
   * *TURNSTILES*: This table is constructed from the `org.chicago.cta.turnstiles` topic.
   * *TURNSTILES_SUMMARY*: This table holds the aggregated view of turnstile data by station. Since we are modifying the data, a new topic will be automatically created with the same name: *TURNSTILES_SUMMARY*. **NOTE**: Since we created this table using a `CREATE TABLE .. AS SELECT .. ` way, an aggregation query will be running on the KSQL server, that will, in real-time, keep updating the TURNSTILE_SUMMARY table with turnstile event counts per station.
 
-***Consumers:***: Lastly, we have our consumers that will load the data into the dashboard. Essentially, we need to have 4 consumers that extract messages from the topics that we created above:
+***Consumers:***: With all of the data in Kafka, our final task is to consume the data in the web server that is going to serve the transit status pages to our commuters. To accomplish this we essentially need to have 4 consumers that extract messages from the topics that we created above:
 - *Weather*: To consume messages from `weather` topic.
 - *StationsTransformed*: To consume messages from `org.chicago.cta.stations.transformed` topic.
 - *StationArrivals*: To consume messages from `org.chicago.cta.stations.arrivals` topic.
@@ -99,15 +99,75 @@ The script that orchestrates these consumers and feeds the data into the dashboa
     ├── requirements.txt
     └── simulation.py
 ```
-**How to run this project?**: There are 4 scripts that we need to run in order to simulate the flow of data from the sources through our pipeline and into the dashboard.
 
-- Run `python simulation.py`: This connect to the Kafka Cluster and create the necessary topics and then emits train arrival and turnstile events into Kafka. In addition to emitting these events, the simulation periodically retrieves the weather information and loads that into its corresponding topic. Finally, it also triggers the Kafka Connect component to retrieve data from postgres and store it in the appropriate topic.
+## How to run this project?
 
-- Run `faust -A faust_stream worker -l info`:
+To run the simulation, you must first start up the Kafka ecosystem on their machine utilizing Docker Compose.
 
-- Run `python ksql.py`:
-  * Creates the TURNSTILES table which contains unaggregated raw turnstile events from the topic: org.chicago.cta.turnstiles.
-  * Creates the TURNSTILE_SUMMARY table contains aggregated turnstile events per station.
+```%> docker-compose up```
+
+Docker compose will take a 3-5 minutes to start, depending on your hardware. Please be patient and wait for the docker-compose logs to slow down or stop before beginning the simulation.
+
+Once docker-compose is ready, the following services will be available:
+
+| Service | Host URL | Docker URL | Username | Password |
+| --- | --- | --- | --- | --- |
+| Public Transit Status | [http://localhost:8888](http://localhost:8888) | n/a | ||
+| Landoop Kafka Connect UI | [http://localhost:8084](http://localhost:8084) | http://connect-ui:8084 |
+| Landoop Kafka Topics UI | [http://localhost:8085](http://localhost:8085) | http://topics-ui:8085 |
+| Landoop Schema Registry UI | [http://localhost:8086](http://localhost:8086) | http://schema-registry-ui:8086 |
+| Kafka | PLAINTEXT://localhost:9092,PLAINTEXT://localhost:9093,PLAINTEXT://localhost:9094 | PLAINTEXT://kafka0:9092,PLAINTEXT://kafka1:9093,PLAINTEXT://kafka2:9094 |
+| REST Proxy | [http://localhost:8082](http://localhost:8082/) | http://rest-proxy:8082/ |
+| Schema Registry | [http://localhost:8081](http://localhost:8081/ ) | http://schema-registry:8081/ |
+| Kafka Connect | [http://localhost:8083](http://localhost:8083) | http://kafka-connect:8083 |
+| KSQL | [http://localhost:8088](http://localhost:8088) | http://ksql:8088 |
+| PostgreSQL | `jdbc:postgresql://localhost:5432/cta` | `jdbc:postgresql://postgres:5432/cta` | `cta_admin` | `chicago` |
+
+Note that to access these services from your own machine, you will always use the `Host URL` column.
+
+When configuring services that run within Docker Compose, like **Kafka Connect you must use the Docker URL**. When you configure the JDBC Source Kafka Connector, for example, you will want to use the value from the `Docker URL` column.
+
+### Running the Simulation
+There are 4 scripts that we need to run in order to simulate the flow of data from the sources through our pipeline and into the dashboard.
+
+
+#### To run the `producer`:
+
+1. `cd producers`
+2. `virtualenv venv`
+3. `. venv/bin/activate`
+4. `pip install -r requirements.txt`
+5. `python simulation.py`
+
+Once the simulation is running, you may hit `Ctrl+C` at any time to exit.
+
+This connects to the Kafka Cluster and creates the necessary topics and then emits train arrival and turnstile events into Kafka. In addition to emitting these events, the simulation periodically retrieves the weather information and loads that into its corresponding topic. Finally, it also triggers the Kafka Connect component to retrieve data from postgres and stores it into the appropriate topic. **NOTE**: Leave this script running, open a new terminal and run the next steps.
+
+#### To run the Faust Stream Processing Application:
+1. `cd consumers`
+2. `virtualenv venv`
+3. `. venv/bin/activate`
+4. `pip install -r requirements.txt`
+5. `faust -A faust_stream worker -l info`
+
+
+#### To run the KSQL Creation Script:
+1. `cd consumers`
+2. `virtualenv venv`
+3. `. venv/bin/activate`
+4. `pip install -r requirements.txt`
+5. `python ksql.py`
+
+#### To run the `consumer`:
+
+** NOTE **: Do not run the consumer until you have reached Step 6!
+1. `cd consumers`
+2. `virtualenv venv`
+3. `. venv/bin/activate`
+4. `pip install -r requirements.txt`
+5. `python server.py`
+
+Once the server is running, you may hit `Ctrl+C` at any time to exit.
 
 **Validate Results**:
 
